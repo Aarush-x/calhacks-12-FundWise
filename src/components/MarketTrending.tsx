@@ -3,6 +3,8 @@ import { ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from "react";
+import StockDetailsDialog from "./StockDetailsDialog";
 
 interface StockData {
   symbol: string;
@@ -16,6 +18,7 @@ interface StockData {
 const TRENDING_SYMBOLS = ["AAPL", "TSLA", "NVDA", "MSFT"];
 
 const MarketTrending = () => {
+  const [selectedStock, setSelectedStock] = useState<{ symbol: string; name: string } | null>(null);
   const { data: stocksData, isLoading } = useQuery({
     queryKey: ["trending-stocks"],
     queryFn: async () => {
@@ -50,6 +53,7 @@ const MarketTrending = () => {
           trendingAssets.map((asset) => (
           <div
             key={asset.symbol}
+            onClick={() => setSelectedStock({ symbol: asset.symbol, name: asset.name })}
             className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-3">
@@ -77,6 +81,13 @@ const MarketTrending = () => {
           ))
         )}
       </div>
+
+      <StockDetailsDialog
+        open={!!selectedStock}
+        onOpenChange={(open) => !open && setSelectedStock(null)}
+        symbol={selectedStock?.symbol || ""}
+        name={selectedStock?.name || ""}
+      />
     </Card>
   );
 };
