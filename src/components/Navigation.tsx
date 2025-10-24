@@ -10,7 +10,7 @@ const Navigation = () => {
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">TradeFlow</span>
+            <span className="text-xl font-bold">FundWise</span>
           </div>
           
           <div className="hidden md:flex items-center gap-1">

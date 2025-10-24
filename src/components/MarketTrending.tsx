@@ -1,14 +1,35 @@
 import { Card } from "@/components/ui/card";
 import { ArrowUpRight, ArrowDownRight, TrendingUp } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const trendingAssets = [
-  { symbol: "AAPL", name: "Apple Inc.", price: "$178.45", change: "+2.34%", isUp: true },
-  { symbol: "TSLA", name: "Tesla Inc.", price: "$242.67", change: "+5.12%", isUp: true },
-  { symbol: "NVDA", name: "NVIDIA Corp.", price: "$495.23", change: "+8.45%", isUp: true },
-  { symbol: "MSFT", name: "Microsoft Corp.", price: "$378.91", change: "-1.23%", isUp: false },
-];
+interface StockData {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  changePercent: string;
+  isUp: boolean;
+}
+
+const TRENDING_SYMBOLS = ["AAPL", "TSLA", "NVDA", "MSFT"];
 
 const MarketTrending = () => {
+  const { data: stocksData, isLoading } = useQuery({
+    queryKey: ["trending-stocks"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("fetch-stock-data", {
+        body: { symbols: TRENDING_SYMBOLS },
+      });
+      
+      if (error) throw error;
+      return data.stocks as StockData[];
+    },
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const trendingAssets = stocksData || [];
   return (
     <Card className="p-6 border-border/50">
       <div className="flex items-center gap-2 mb-4">
@@ -17,7 +38,16 @@ const MarketTrending = () => {
       </div>
       
       <div className="space-y-3">
-        {trendingAssets.map((asset) => (
+        {isLoading ? (
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-3 rounded-lg bg-secondary/50">
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </>
+        ) : (
+          trendingAssets.map((asset) => (
           <div
             key={asset.symbol}
             className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors cursor-pointer"
@@ -33,18 +63,19 @@ const MarketTrending = () => {
             </div>
             
             <div className="text-right">
-              <div className="font-semibold">{asset.price}</div>
+              <div className="font-semibold">${asset.price}</div>
               <div className={`flex items-center gap-1 text-sm ${asset.isUp ? 'text-success' : 'text-destructive'}`}>
                 {asset.isUp ? (
                   <ArrowUpRight className="w-3 h-3" />
                 ) : (
                   <ArrowDownRight className="w-3 h-3" />
                 )}
-                <span>{asset.change}</span>
+                <span>{asset.isUp ? '+' : ''}{asset.changePercent}%</span>
               </div>
             </div>
           </div>
-        ))}
+          ))
+        )}
       </div>
     </Card>
   );
