@@ -27,7 +27,7 @@ serve(async (req) => {
 
     // Call Letta API to send message
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
     try {
       const response = await fetch(`https://api.letta.com/v1/agents/${agentId}/messages`, {
