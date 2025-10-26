@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import TradingSettings from "@/components/TradingSettings";
 import AutomatedTrades from "@/components/AutomatedTrades";
+import NovaChat from "@/components/NovaChat";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -65,94 +66,103 @@ const Trade = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Trade Stocks</h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Manual Trading Section */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Place Order</CardTitle>
-                <CardDescription>Buy or sell stocks manually</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="buy" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="buy">
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Buy
-                    </TabsTrigger>
-                    <TabsTrigger value="sell">
-                      <TrendingDown className="w-4 h-4 mr-2" />
-                      Sell
-                    </TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="buy" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="symbol">Stock Symbol</Label>
-                      <Input 
-                        id="symbol"
-                        placeholder="e.g., AAPL" 
-                        value={symbol}
-                        onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantity</Label>
-                      <Input 
-                        id="quantity"
-                        type="number" 
-                        placeholder="Number of shares"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                      />
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      onClick={() => handleTrade('buy')} 
-                      disabled={loading}
-                    >
-                      {loading ? 'Placing Order...' : 'Place Buy Order'}
-                    </Button>
-                  </TabsContent>
-                  
-                  <TabsContent value="sell" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sell-symbol">Stock Symbol</Label>
-                      <Input 
-                        id="sell-symbol"
-                        placeholder="e.g., AAPL"
-                        value={symbol}
-                        onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="sell-quantity">Quantity</Label>
-                      <Input 
-                        id="sell-quantity"
-                        type="number" 
-                        placeholder="Number of shares"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                      />
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      variant="destructive" 
-                      onClick={() => handleTrade('sell')} 
-                      disabled={loading}
-                    >
-                      {loading ? 'Placing Order...' : 'Place Sell Order'}
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Trading Section */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Manual Trading */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Place Order</CardTitle>
+                  <CardDescription>Buy or sell stocks manually</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="buy" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="buy">
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Buy
+                      </TabsTrigger>
+                      <TabsTrigger value="sell">
+                        <TrendingDown className="w-4 h-4 mr-2" />
+                        Sell
+                      </TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="buy" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="symbol">Stock Symbol</Label>
+                        <Input 
+                          id="symbol"
+                          placeholder="e.g., AAPL" 
+                          value={symbol}
+                          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="quantity">Quantity</Label>
+                        <Input 
+                          id="quantity"
+                          type="number" 
+                          placeholder="Number of shares"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        onClick={() => handleTrade('buy')} 
+                        disabled={loading}
+                      >
+                        {loading ? 'Placing Order...' : 'Place Buy Order'}
+                      </Button>
+                    </TabsContent>
+                    
+                    <TabsContent value="sell" className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="sell-symbol">Stock Symbol</Label>
+                        <Input 
+                          id="sell-symbol"
+                          placeholder="e.g., AAPL"
+                          value={symbol}
+                          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="sell-quantity">Quantity</Label>
+                        <Input 
+                          id="sell-quantity"
+                          type="number" 
+                          placeholder="Number of shares"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                        />
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        variant="destructive" 
+                        onClick={() => handleTrade('sell')} 
+                        disabled={loading}
+                      >
+                        {loading ? 'Placing Order...' : 'Place Sell Order'}
+                      </Button>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Automated Trading */}
+              <div className="space-y-6">
+                <TradingSettings />
+              </div>
+            </div>
+            
+            <AutomatedTrades />
           </div>
 
-          {/* Automated Trading Section */}
-          <div className="space-y-6">
-            <TradingSettings />
-            <AutomatedTrades />
+          {/* Nova AI Chat */}
+          <div>
+            <NovaChat />
           </div>
         </div>
       </div>
