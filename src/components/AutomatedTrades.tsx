@@ -78,7 +78,7 @@ const AutomatedTrades = () => {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold">Automated Trades</h3>
+        <h3 className="text-lg font-semibold">Trades</h3>
         <Button onClick={refreshPositions} disabled={loading} variant="outline" size="sm">
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
