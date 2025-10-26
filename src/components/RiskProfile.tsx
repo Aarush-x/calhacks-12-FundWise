@@ -83,6 +83,8 @@ const RiskProfile = () => {
           stop_loss_percentage: profile.stopLoss,
           stop_loss_enabled: true,
           automated_trading_enabled: false
+        }, {
+          onConflict: 'user_id'
         });
 
       if (error) throw error;
