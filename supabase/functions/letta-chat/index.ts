@@ -50,9 +50,19 @@ serve(async (req) => {
 
       clearTimeout(timeoutId);
 
+      console.log('Letta API response status:', response.status);
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Letta API error:', response.status, errorText);
+        
+        // Provide user-friendly error messages
+        if (response.status === 404) {
+          throw new Error(`Agent not found. Please verify your Letta Agent ID is correct.`);
+        } else if (response.status === 401 || response.status === 403) {
+          throw new Error(`Authentication failed. Please verify your Letta API key is correct.`);
+        }
+        
         throw new Error(`Letta API error: ${response.status} - ${errorText}`);
       }
 
