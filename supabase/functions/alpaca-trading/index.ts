@@ -47,6 +47,32 @@ serve(async (req) => {
       .single();
 
     if (action === 'place_order') {
+      // First, check for existing open orders for the same symbol
+      const existingOrdersResponse = await fetch(`${alpacaBaseUrl}/orders?status=open&symbols=${symbol}`, {
+        headers: {
+          'APCA-API-KEY-ID': ALPACA_API_KEY,
+          'APCA-API-SECRET-KEY': ALPACA_SECRET_KEY,
+        },
+      });
+
+      if (existingOrdersResponse.ok) {
+        const existingOrders = await existingOrdersResponse.json();
+        
+        // Cancel any conflicting orders (opposite side)
+        for (const order of existingOrders) {
+          if (order.side !== side) {
+            console.log(`Canceling conflicting ${order.side} order for ${symbol}`);
+            await fetch(`${alpacaBaseUrl}/orders/${order.id}`, {
+              method: 'DELETE',
+              headers: {
+                'APCA-API-KEY-ID': ALPACA_API_KEY,
+                'APCA-API-SECRET-KEY': ALPACA_SECRET_KEY,
+              },
+            });
+          }
+        }
+      }
+
       // Place order with Alpaca
       const orderPayload = {
         symbol,
@@ -69,9 +95,9 @@ serve(async (req) => {
       });
 
       if (!orderResponse.ok) {
-        const errorText = await orderResponse.text();
-        console.error('Alpaca order error:', errorText);
-        throw new Error(`Alpaca API error: ${errorText}`);
+        const errorData = await orderResponse.json();
+        console.error('Alpaca order error:', errorData);
+        throw new Error(`Failed to place order: ${errorData.message || 'Unknown error'}`);
       }
 
       const orderData = await orderResponse.json();
