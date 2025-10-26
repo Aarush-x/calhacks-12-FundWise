@@ -38,7 +38,7 @@ const NovaChat = () => {
 
     const userMessage: Message = {
       role: "user",
-      content: input,
+      content: input.trim(),
       timestamp: new Date(),
     };
 
@@ -49,12 +49,19 @@ const NovaChat = () => {
     try {
       const { data, error } = await supabase.functions.invoke("letta-chat", {
         body: {
-          message: input,
+          message: userMessage.content,
           conversationId,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Letta API error:', error);
+        throw new Error(error.message || 'Failed to connect to Nova AI');
+      }
+
+      if (!data || !data.response) {
+        throw new Error('No response received from Nova AI');
+      }
 
       // Update conversation ID if returned
       if (data.conversation_id && !conversationId) {
@@ -63,16 +70,34 @@ const NovaChat = () => {
 
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.response || data.message || "I received your message.",
+        content: data.response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      
+      // Provide user-friendly error messages
+      let errorDescription = "Failed to send message to Nova. ";
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('timeout') || errorMsg.includes('524') || errorMsg.includes('taking too long')) {
+          errorDescription = "Nova is taking too long to respond. The Letta AI service might be experiencing high load. Please try again in a moment.";
+        } else if (errorMsg.includes('agent-not-found') || errorMsg.includes('agent')) {
+          errorDescription = "There's an issue with the Nova AI configuration. Please check that your Letta Agent ID is correct.";
+        } else if (errorMsg.includes('rate limit')) {
+          errorDescription = "Rate limit reached. Please wait a moment before trying again.";
+        } else {
+          errorDescription += error.message;
+        }
+      } else {
+        errorDescription += "Please try again.";
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to send message to Nova. Please try again.",
+        title: "Connection Error",
+        description: errorDescription,
         variant: "destructive",
       });
     } finally {
