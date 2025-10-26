@@ -38,7 +38,7 @@ You can ask FundWise AI things like:
 
 ## Setup Instructions
 
-### 1 Clone the repository
+## 1 Clone the repository
 ```bash
 git clone https://github.com/<your-username>/FundWise-AI.git
 cd FundWise-AI
@@ -57,7 +57,7 @@ GEMINI_API_KEY=your_gemini_flash_key_here
 npm run dev
 
 
-## What technologies are used for this project?
+### What technologies are used for this project?
 
 This project is built with:
 
