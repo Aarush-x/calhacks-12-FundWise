@@ -1,54 +1,61 @@
-# Welcome to your Lovable project
+#  FundWise AI — Smart Stock Trading Assistant
 
-## Project info
+FundWise AI is a modern web platform that empowers users to automate and optimize their **stock trading strategies** using **AI and technical analysis**.  
+Built with ❤️ for calhacks — minimal, fast, and insightful.
 
-**URL**: https://lovable.dev/projects/e54bfd69-a8a1-43aa-928b-65751c074230
+---
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+- **Live Stock Data** via [Yahoo Finance API](https://www.yahoofinanceapi.com/)
+- **AI Trading Assistant** powered by **Gemini Flash 2.5**
+- **Technical Analysis Tools** including:
+  - Moving Averages (MA, EMA)
+  - Bollinger Bands
+  - RSI (Relative Strength Index)
+  - Momentum Indicators
+  - Support & Resistance Detection
+- **Automated Fund Allocation** using AI recommendations  
+- **News Sentiment Analyzer** (via [Alpha Vantage News API](https://www.alphavantage.co))  
+  → Filters and classifies news as *Positive*, *Negative*, or *Neutral*
+- **Interactive Stock Graphs** — click any stock to view:
+  - Live price chart
+  - Related news organized by sentiment
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e54bfd69-a8a1-43aa-928b-65751c074230) and start prompting.
+## AI Capabilities
 
-Changes made via Lovable will be committed automatically to this repo.
+The **Gemini Flash 2.5 Trading Assistant** analyzes:
+- Market momentum  
+- Technical indicators  
+- Historical patterns  
+- Sentiment trends  
 
-**Use your preferred IDE**
+You can ask FundWise AI things like:
+>  *“Create a low-risk swing trading strategy for AAPL using Bollinger Bands and RSI.”*  
+>  *“Suggest how to allocate \$10,000 across large-cap stocks with moderate risk.”*
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Setup Instructions
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 1 Clone the repository
+```bash
+git clone https://github.com/<your-username>/FundWise-AI.git
+cd FundWise-AI
+2️ Install dependencies
+npm install
 
-Follow these steps:
+3️ Add your environment variables
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Create a .env file in the project root:
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+ALPHAVANTAGE_API_KEY=your_alphavantage_key_here
+YAHOO_API_KEY=your_yahoo_api_key_here
+GEMINI_API_KEY=your_gemini_flash_key_here
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4️ Run the app
 npm run dev
-```
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
 ## What technologies are used for this project?
 
@@ -60,14 +67,4 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/e54bfd69-a8a1-43aa-928b-65751c074230) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
