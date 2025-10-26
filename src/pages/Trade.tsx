@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import TradingSettings from "@/components/TradingSettings";
 import AutomatedTrades from "@/components/AutomatedTrades";
@@ -15,6 +16,8 @@ const Trade = () => {
   const { toast } = useToast();
   const [symbol, setSymbol] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [orderType, setOrderType] = useState<"market" | "limit">("market");
+  const [limitPrice, setLimitPrice] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleTrade = async (side: 'buy' | 'sell') => {
@@ -22,6 +25,15 @@ const Trade = () => {
       toast({
         title: "Error",
         description: "Please enter both symbol and quantity",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (orderType === "limit" && !limitPrice) {
+      toast({
+        title: "Error",
+        description: "Please enter limit price",
         variant: "destructive",
       });
       return;
@@ -35,18 +47,22 @@ const Trade = () => {
           symbol: symbol.toUpperCase(),
           quantity: parseFloat(quantity),
           side,
+          orderType,
+          limitPrice: orderType === "limit" ? parseFloat(limitPrice) : undefined,
         }
       });
 
       if (error) throw error;
 
+      const orderTypeText = orderType === "market" ? "Market" : `Limit (${limitPrice})`;
       toast({
         title: "Order Placed",
-        description: `${side.toUpperCase()} order for ${quantity} shares of ${symbol.toUpperCase()} placed successfully`,
+        description: `${side.toUpperCase()} ${orderTypeText} order for ${quantity} shares of ${symbol.toUpperCase()} placed successfully`,
       });
 
       setSymbol("");
       setQuantity("");
+      setLimitPrice("");
     } catch (error: any) {
       console.error('Trade error:', error);
       toast({
@@ -105,6 +121,32 @@ const Trade = () => {
                       onChange={(e) => setQuantity(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Order Type</Label>
+                    <RadioGroup value={orderType} onValueChange={(value) => setOrderType(value as "market" | "limit")}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="market" id="market" />
+                        <Label htmlFor="market" className="cursor-pointer">Market Order</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="limit" id="limit" />
+                        <Label htmlFor="limit" className="cursor-pointer">Limit Order</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  {orderType === "limit" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="limitPrice">Limit Price</Label>
+                      <Input 
+                        id="limitPrice"
+                        type="number" 
+                        step="0.01"
+                        placeholder="Price per share"
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(e.target.value)}
+                      />
+                    </div>
+                  )}
                   <Button 
                     className="w-full" 
                     onClick={() => handleTrade('buy')} 
@@ -134,6 +176,32 @@ const Trade = () => {
                       onChange={(e) => setQuantity(e.target.value)}
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Order Type</Label>
+                    <RadioGroup value={orderType} onValueChange={(value) => setOrderType(value as "market" | "limit")}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="market" id="sell-market" />
+                        <Label htmlFor="sell-market" className="cursor-pointer">Market Order</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="limit" id="sell-limit" />
+                        <Label htmlFor="sell-limit" className="cursor-pointer">Limit Order</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  {orderType === "limit" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="sell-limitPrice">Limit Price</Label>
+                      <Input 
+                        id="sell-limitPrice"
+                        type="number" 
+                        step="0.01"
+                        placeholder="Price per share"
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(e.target.value)}
+                      />
+                    </div>
+                  )}
                   <Button 
                     className="w-full" 
                     variant="destructive" 

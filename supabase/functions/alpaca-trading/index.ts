@@ -27,8 +27,8 @@ serve(async (req) => {
       throw new Error('Not authenticated');
     }
 
-    const { action, symbol, quantity, side } = await req.json();
-    console.log('Alpaca trading request:', { action, symbol, quantity, side, userId: user.id });
+    const { action, symbol, quantity, side, orderType, limitPrice } = await req.json();
+    console.log('Alpaca trading request:', { action, symbol, quantity, side, orderType, limitPrice, userId: user.id });
 
     const ALPACA_API_KEY = Deno.env.get('ALPACA_API_KEY');
     const ALPACA_SECRET_KEY = Deno.env.get('ALPACA_SECRET_KEY');
@@ -74,13 +74,18 @@ serve(async (req) => {
       }
 
       // Place order with Alpaca
-      const orderPayload = {
+      const orderPayload: any = {
         symbol,
         qty: quantity,
         side,
-        type: 'market',
-        time_in_force: 'day'
+        type: orderType || 'market',
+        time_in_force: orderType === 'limit' ? 'gtc' : 'day'
       };
+
+      // Add limit price if it's a limit order
+      if (orderType === 'limit' && limitPrice) {
+        orderPayload.limit_price = limitPrice;
+      }
 
       console.log('Placing Alpaca order:', orderPayload);
 
@@ -103,6 +108,15 @@ serve(async (req) => {
       const orderData = await orderResponse.json();
       console.log('Alpaca order placed:', orderData);
 
+      // Determine initial status based on order type and Alpaca response
+      let initialStatus = 'pending';
+      if (orderData.status === 'filled') {
+        initialStatus = 'filled';
+      } else if (orderData.status === 'accepted' && orderType === 'market') {
+        // Market orders usually fill quickly, check again in a moment
+        initialStatus = 'pending';
+      }
+
       // Save to database
       const { data: trade, error: insertError } = await supabaseClient
         .from('automated_trades')
@@ -111,8 +125,9 @@ serve(async (req) => {
           symbol,
           order_type: side,
           quantity,
-          status: 'pending',
+          status: initialStatus,
           alpaca_order_id: orderData.id,
+          entry_price: orderData.filled_avg_price ? parseFloat(orderData.filled_avg_price) : (orderType === 'limit' ? limitPrice : null),
         })
         .select()
         .single();
@@ -120,6 +135,38 @@ serve(async (req) => {
       if (insertError) {
         console.error('Database insert error:', insertError);
         throw insertError;
+      }
+
+      // For market orders, wait a moment and check if it filled
+      if (orderType === 'market') {
+        setTimeout(async () => {
+          try {
+            const orderCheckResponse = await fetch(`${alpacaBaseUrl}/orders/${orderData.id}`, {
+              headers: {
+                'APCA-API-KEY-ID': ALPACA_API_KEY,
+                'APCA-API-SECRET-KEY': ALPACA_SECRET_KEY,
+              },
+            });
+
+            if (orderCheckResponse.ok) {
+              const updatedOrder = await orderCheckResponse.json();
+              console.log('Order status check:', updatedOrder);
+
+              if (updatedOrder.status === 'filled') {
+                await supabaseClient
+                  .from('automated_trades')
+                  .update({
+                    status: 'filled',
+                    entry_price: parseFloat(updatedOrder.filled_avg_price),
+                    current_price: parseFloat(updatedOrder.filled_avg_price),
+                  })
+                  .eq('alpaca_order_id', orderData.id);
+              }
+            }
+          } catch (error) {
+            console.error('Error checking order status:', error);
+          }
+        }, 2000); // Check after 2 seconds
       }
 
       return new Response(JSON.stringify({ success: true, order: orderData, trade }), {
