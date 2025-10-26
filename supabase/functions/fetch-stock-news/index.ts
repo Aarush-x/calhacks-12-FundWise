@@ -9,97 +9,121 @@ interface NewsArticle {
   url: string;
   publishedAt: string;
   description: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  relevanceScore?: number;
 }
 
 async function fetchStockNews(symbol: string, companyName: string): Promise<NewsArticle[]> {
+  const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
+  
+  if (!apiKey) {
+    console.error('ALPHA_VANTAGE_API_KEY not found');
+    return [];
+  }
+
   try {
-    // Fetch from multiple reliable financial news sources
-    const newsArticles: NewsArticle[] = [];
+    // Fetch news from Alpha Vantage with ticker filter
+    const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${apiKey}&limit=50`;
     
-    // Try Yahoo Finance news first
-    try {
-      const yahooResponse = await fetch(
-        `https://query1.finance.yahoo.com/v1/finance/search?q=${symbol}`,
-        {
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-          },
-        }
-      );
+    console.log(`Fetching news for ${symbol} from Alpha Vantage`);
+    
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.error(`Alpha Vantage API error: ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    
+    if (data.Note) {
+      console.error('Alpha Vantage API limit reached:', data.Note);
+      return [];
+    }
+
+    if (!data.feed || data.feed.length === 0) {
+      console.log('No news found for symbol:', symbol);
+      return [];
+    }
+
+    // Filter and process news articles
+    const newsArticles: NewsArticle[] = [];
+    const keywords = [symbol.toLowerCase(), companyName.toLowerCase()];
+    
+    // Add common variations
+    if (companyName.toLowerCase().includes('inc')) {
+      keywords.push(companyName.toLowerCase().replace('inc.', '').trim());
+    }
+
+    for (const article of data.feed) {
+      // Check relevance using keywords
+      const titleLower = article.title.toLowerCase();
+      const summaryLower = (article.summary || '').toLowerCase();
+      const combinedText = titleLower + ' ' + summaryLower;
       
-      if (yahooResponse.ok) {
-        const yahooData = await yahooResponse.json();
-        if (yahooData.news && yahooData.news.length > 0) {
-          yahooData.news.slice(0, 5).forEach((article: any) => {
-            newsArticles.push({
-              title: article.title,
-              source: article.publisher || 'Yahoo Finance',
-              url: article.link || `https://finance.yahoo.com/quote/${symbol}/news`,
-              publishedAt: new Date(article.providerPublishTime * 1000).toISOString(),
-              description: article.summary || '',
-            });
-          });
+      // Calculate relevance score
+      let relevanceScore = 0;
+      keywords.forEach(keyword => {
+        if (combinedText.includes(keyword)) {
+          relevanceScore += 1;
         }
+      });
+
+      // Only include articles with relevance
+      if (relevanceScore > 0) {
+        // Get sentiment for the specific ticker
+        let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+        
+        if (article.ticker_sentiment) {
+          const tickerSentiment = article.ticker_sentiment.find(
+            (ts: any) => ts.ticker === symbol
+          );
+          
+          if (tickerSentiment && tickerSentiment.ticker_sentiment_label) {
+            const label = tickerSentiment.ticker_sentiment_label.toLowerCase();
+            if (label.includes('bullish') || label.includes('positive')) {
+              sentiment = 'positive';
+            } else if (label.includes('bearish') || label.includes('negative')) {
+              sentiment = 'negative';
+            }
+          }
+        }
+
+        newsArticles.push({
+          title: article.title,
+          source: article.source || 'Unknown',
+          url: article.url,
+          publishedAt: article.time_published 
+            ? new Date(
+                article.time_published.slice(0, 4) + '-' +
+                article.time_published.slice(4, 6) + '-' +
+                article.time_published.slice(6, 8) + 'T' +
+                article.time_published.slice(9, 11) + ':' +
+                article.time_published.slice(11, 13) + ':' +
+                article.time_published.slice(13, 15) + 'Z'
+              ).toISOString()
+            : new Date().toISOString(),
+          description: article.summary || '',
+          sentiment,
+          relevanceScore,
+        });
       }
-    } catch (error) {
-      console.log('Yahoo Finance news fetch failed:', error);
     }
 
-    // If we got news, return it
-    if (newsArticles.length > 0) {
-      console.log('Fetched news from Yahoo Finance');
-      return newsArticles;
-    }
+    // Sort by relevance score and date
+    newsArticles.sort((a, b) => {
+      if (b.relevanceScore !== a.relevanceScore) {
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      }
+      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+    });
 
-    // Fallback to constructed news URLs from reliable sources
-    return getReliableNewsUrls(symbol, companyName);
+    console.log(`Found ${newsArticles.length} relevant articles for ${symbol}`);
+    return newsArticles.slice(0, 20); // Return top 20 most relevant
   } catch (error) {
     console.error(`Error fetching news for ${symbol}:`, error);
-    return getReliableNewsUrls(symbol, companyName);
+    return [];
   }
-}
-
-function getReliableNewsUrls(symbol: string, companyName: string): NewsArticle[] {
-  const now = new Date();
-  
-  // Return real URLs to reliable financial news sources
-  return [
-    {
-      title: `${companyName} (${symbol}) - Latest News & Analysis`,
-      source: 'Yahoo Finance',
-      url: `https://finance.yahoo.com/quote/${symbol}/news`,
-      publishedAt: new Date(now.getTime() - 1 * 60 * 60 * 1000).toISOString(),
-      description: `Latest news, analysis, and market updates for ${companyName}.`,
-    },
-    {
-      title: `${symbol} Stock Price, Quote & News`,
-      source: 'MarketWatch',
-      url: `https://www.marketwatch.com/investing/stock/${symbol.toLowerCase()}`,
-      publishedAt: new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString(),
-      description: `Real-time ${companyName} stock price and comprehensive market data.`,
-    },
-    {
-      title: `${companyName} Company Profile & News`,
-      source: 'Reuters',
-      url: `https://www.reuters.com/markets/companies/${symbol}`,
-      publishedAt: new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString(),
-      description: `${companyName} company profile, financial information, and latest headlines.`,
-    },
-    {
-      title: `${symbol} Real-Time Stock Quote & Analysis`,
-      source: 'CNBC',
-      url: `https://www.cnbc.com/quotes/${symbol}`,
-      publishedAt: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
-      description: `Follow ${companyName} stock performance with real-time quotes and expert analysis.`,
-    },
-    {
-      title: `${companyName} Investor Relations & Financials`,
-      source: 'Seeking Alpha',
-      url: `https://seekingalpha.com/symbol/${symbol}`,
-      publishedAt: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      description: `In-depth analysis, earnings reports, and investor insights for ${companyName}.`,
-    },
-  ];
 }
 
 Deno.serve(async (req) => {

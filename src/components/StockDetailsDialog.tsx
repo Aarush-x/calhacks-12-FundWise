@@ -19,6 +19,8 @@ interface NewsArticle {
   url: string;
   publishedAt: string;
   description: string;
+  sentiment?: 'positive' | 'negative' | 'neutral';
+  relevanceScore?: number;
 }
 
 interface HistoricalDataPoint {
@@ -122,7 +124,7 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
 
           {/* News Section */}
           <div>
-            <h3 className="text-lg font-semibold mb-3">Latest News</h3>
+            <h3 className="text-lg font-semibold mb-3">Latest News - {symbol}</h3>
             {isLoadingNews ? (
               <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
@@ -132,41 +134,135 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
                 ))}
               </div>
             ) : newsData && newsData.length > 0 ? (
-              <div className="space-y-3">
-                {newsData.map((article, index) => (
-                  <Card key={index} className="p-4 hover:bg-secondary/50 transition-colors">
-                    <a 
-                      href={article.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="block"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <h4 className="font-semibold mb-1 flex items-start gap-2">
-                            {article.title}
-                            <ExternalLink className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground" />
-                          </h4>
-                          {article.description && (
-                            <p className="text-sm text-muted-foreground mb-2">
-                              {article.description}
-                            </p>
-                          )}
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            <span className="font-medium">{article.source}</span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDate(article.publishedAt)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </a>
-                  </Card>
-                ))}
-              </div>
+              <>
+                {/* Positive News */}
+                {newsData.filter(a => a.sentiment === 'positive').length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold mb-3 text-green-600 dark:text-green-400">
+                      Positive News ({newsData.filter(a => a.sentiment === 'positive').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {newsData.filter(a => a.sentiment === 'positive').map((article, index) => (
+                        <Card key={`pos-${index}`} className="p-4 hover:bg-secondary/50 transition-colors border-l-4 border-l-green-500">
+                          <a 
+                            href={article.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <h5 className="font-semibold mb-1 flex items-start gap-2">
+                                  {article.title}
+                                  <ExternalLink className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground" />
+                                </h5>
+                                {article.description && (
+                                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                    {article.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span className="font-medium">{article.source}</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDate(article.publishedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </a>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Neutral News */}
+                {newsData.filter(a => a.sentiment === 'neutral').length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-md font-semibold mb-3 text-blue-600 dark:text-blue-400">
+                      Neutral News ({newsData.filter(a => a.sentiment === 'neutral').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {newsData.filter(a => a.sentiment === 'neutral').map((article, index) => (
+                        <Card key={`neu-${index}`} className="p-4 hover:bg-secondary/50 transition-colors border-l-4 border-l-blue-500">
+                          <a 
+                            href={article.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <h5 className="font-semibold mb-1 flex items-start gap-2">
+                                  {article.title}
+                                  <ExternalLink className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground" />
+                                </h5>
+                                {article.description && (
+                                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                    {article.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span className="font-medium">{article.source}</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDate(article.publishedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </a>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Negative News */}
+                {newsData.filter(a => a.sentiment === 'negative').length > 0 && (
+                  <div>
+                    <h4 className="text-md font-semibold mb-3 text-red-600 dark:text-red-400">
+                      Negative News ({newsData.filter(a => a.sentiment === 'negative').length})
+                    </h4>
+                    <div className="space-y-3">
+                      {newsData.filter(a => a.sentiment === 'negative').map((article, index) => (
+                        <Card key={`neg-${index}`} className="p-4 hover:bg-secondary/50 transition-colors border-l-4 border-l-red-500">
+                          <a 
+                            href={article.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="block"
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1">
+                                <h5 className="font-semibold mb-1 flex items-start gap-2">
+                                  {article.title}
+                                  <ExternalLink className="w-4 h-4 flex-shrink-0 mt-0.5 text-muted-foreground" />
+                                </h5>
+                                {article.description && (
+                                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                                    {article.description}
+                                  </p>
+                                )}
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                  <span className="font-medium">{article.source}</span>
+                                  <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatDate(article.publishedAt)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </a>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              <p className="text-muted-foreground">No news available</p>
+              <p className="text-muted-foreground">No news available for {symbol}</p>
             )}
           </div>
         </div>
