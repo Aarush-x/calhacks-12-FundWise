@@ -25,80 +25,64 @@ serve(async (req) => {
 
     console.log('Sending message to Letta agent:', agentId);
 
-    // Call Letta API to send message
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+    // Call Letta API using the correct format from official docs
+    const response = await fetch(`https://api.letta.com/v1/agents/${agentId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lettaApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: 'user',
+            content: message,
+          }
+        ]
+      }),
+    });
 
-    try {
-      const response = await fetch(`https://api.letta.com/v1/agents/${agentId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lettaApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: 'user',
-              text: message,
-            }
-          ],
-          stream: false,
-        }),
-        signal: controller.signal,
-      });
+    console.log('Letta API response status:', response.status);
 
-      clearTimeout(timeoutId);
-
-      console.log('Letta API response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Letta API error:', response.status, errorText);
-        
-        // Provide user-friendly error messages
-        if (response.status === 404) {
-          throw new Error(`Agent not found. Please verify your Letta Agent ID is correct.`);
-        } else if (response.status === 401 || response.status === 403) {
-          throw new Error(`Authentication failed. Please verify your Letta API key is correct.`);
-        }
-        
-        throw new Error(`Letta API error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Letta API full response:', JSON.stringify(data, null, 2));
-
-      // Extract the assistant's message from the response
-      // Try multiple possible response structures
-      let assistantMessage = '';
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Letta API error:', response.status, errorText);
       
-      if (data.messages && Array.isArray(data.messages)) {
-        const assistantMsg = data.messages.find((m: any) => m.role === 'assistant');
-        assistantMessage = assistantMsg?.text || assistantMsg?.content || '';
-      } else if (data.response) {
-        assistantMessage = data.response;
-      } else if (data.message) {
-        assistantMessage = data.message;
+      if (response.status === 404) {
+        throw new Error(`Agent not found. Please verify your Letta Agent ID is correct.`);
+      } else if (response.status === 401 || response.status === 403) {
+        throw new Error(`Authentication failed. Please verify your Letta API key is correct.`);
       }
-
-      if (!assistantMessage) {
-        console.error('Could not extract message from response:', data);
-        assistantMessage = 'I received your message but had trouble formatting the response. Please try again.';
-      }
-
-      return new Response(JSON.stringify({ 
-        response: assistantMessage,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        throw new Error('Request timed out. The Letta API is taking too long to respond.');
-      }
-      throw fetchError;
+      
+      throw new Error(`Letta API error: ${response.status} - ${errorText}`);
     }
+
+    const data = await response.json();
+    console.log('Letta API full response:', JSON.stringify(data, null, 2));
+
+    // Extract assistant messages based on official API response format
+    let assistantMessage = '';
+    
+    if (data.messages && Array.isArray(data.messages)) {
+      // Filter for assistant_message type and combine their content
+      const assistantMessages = data.messages
+        .filter((m: any) => m.message_type === 'assistant_message')
+        .map((m: any) => m.content)
+        .filter(Boolean);
+      
+      assistantMessage = assistantMessages.join(' ');
+    }
+
+    if (!assistantMessage) {
+      console.error('Could not extract assistant message from response:', data);
+      assistantMessage = 'I received your message but had trouble formatting the response. Please try again.';
+    }
+
+    return new Response(JSON.stringify({ 
+      response: assistantMessage,
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   } catch (error) {
     console.error('Error in letta-chat function:', error);
     return new Response(
