@@ -112,30 +112,34 @@ const RiskProfile = () => {
       </div>
       
       <div className="space-y-3">
-        {riskProfiles.map((profile) => (
-          <button
-            key={profile.name}
-            onClick={() => selectProfile(profile)}
-            disabled={isLoading}
-            className="w-full p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-all group relative disabled:opacity-50"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-left">
-                <div className="font-semibold flex items-center gap-2">
-                  {profile.name}
-                  {selectedProfile === profile.value && (
-                    <Check className="w-4 h-4 text-primary" />
-                  )}
+        {riskProfiles.map((profile) => {
+          const isSelected = selectedProfile === profile.value;
+          
+          return (
+            <button
+              key={profile.name}
+              onClick={() => selectProfile(profile)}
+              disabled={isLoading}
+              className="w-full p-4 rounded-lg bg-secondary/50 hover:bg-secondary transition-all group relative disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-left">
+                  <div className="font-semibold flex items-center gap-2">
+                    {profile.name}
+                    {isSelected && (
+                      <Check className="w-4 h-4 text-primary" />
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">{profile.description}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Target: +{profile.profitTarget}% | Stop: -{profile.stopLoss}%
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">{profile.description}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Target: +{profile.profitTarget}% | Stop: -{profile.stopLoss}%
-                </div>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${profile.color} ${isSelected ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'} transition-opacity`} />
               </div>
-              <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${profile.color} opacity-60 group-hover:opacity-100 transition-opacity`} />
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
       
       <p className="text-sm text-muted-foreground mt-4">
