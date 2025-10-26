@@ -12,17 +12,17 @@ serve(async (req) => {
 
   try {
     const { message, accountData } = await req.json();
-    const hfApiKey = Deno.env.get('HUGGING_FACE_API_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-    if (!hfApiKey) {
-      throw new Error('HUGGING_FACE_API_KEY not configured');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY not configured');
     }
 
     console.log('K AI received message:', message);
     console.log('Account data:', accountData);
 
-    // Build context-aware prompt
-    const systemContext = `You are "K", an AI Trading Strategist integrated into a web trading app. 
+    // Build context-aware system prompt
+    const systemPrompt = `You are "K", an AI Trading Strategist integrated into a web trading app. 
 Your role is to guide users in building, testing, and refining automated trading strategies using live financial data.
 
 **Core Objective:**
@@ -42,62 +42,51 @@ Help users create trading strategies using technical indicators, analyze market 
 **Interaction Style:**
 - Concise, professional explanations
 - Help users understand reasoning behind strategies
-- Output structured recommendations when appropriate
+- Output structured recommendations when appropriate`;
 
-User's question: ${message}`;
-
-    // Call Hugging Face Inference API
+    // Call Lovable AI Gateway
     const response = await fetch(
-      "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct",
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${hfApiKey}`,
+          "Authorization": `Bearer ${lovableApiKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          inputs: systemContext,
-          parameters: {
-            max_new_tokens: 500,
-            temperature: 0.7,
-            top_p: 0.9,
-            return_full_text: false,
-          }
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: message }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
         }),
       }
     );
 
-    console.log('HuggingFace API response status:', response.status);
+    console.log('Lovable AI response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('HuggingFace API error:', response.status, errorText);
+      console.error('Lovable AI error:', response.status, errorText);
       
-      // Handle model loading
-      if (response.status === 503) {
-        throw new Error('AI model is loading. Please try again in a few moments.');
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a moment.');
       }
       
-      throw new Error(`AI API error: ${response.status} - ${errorText}`);
+      if (response.status === 402) {
+        throw new Error('Payment required. Please add credits to your workspace.');
+      }
+      
+      throw new Error(`AI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('HuggingFace API response:', JSON.stringify(data, null, 2));
+    console.log('Lovable AI response:', JSON.stringify(data, null, 2));
 
-    let aiResponse = '';
-    
-    if (Array.isArray(data) && data.length > 0) {
-      aiResponse = data[0].generated_text || data[0].text || '';
-    } else if (data.generated_text) {
-      aiResponse = data.generated_text;
-    } else if (data[0]?.generated_text) {
-      aiResponse = data[0].generated_text;
-    }
-
-    if (!aiResponse) {
-      console.error('Could not extract AI response:', data);
-      aiResponse = 'I received your message but had trouble generating a response. Please try rephrasing your question.';
-    }
+    const aiResponse = data.choices?.[0]?.message?.content || 
+                       'I received your message but had trouble generating a response. Please try again.';
 
     return new Response(JSON.stringify({ 
       response: aiResponse,
