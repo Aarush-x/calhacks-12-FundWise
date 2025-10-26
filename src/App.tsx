@@ -7,7 +7,9 @@ import Index from "./pages/Index";
 import Trade from "./pages/Trade";
 import News from "./pages/News";
 import Learn from "./pages/Learn";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,7 +21,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/trade" element={<Trade />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/trade" element={<ProtectedRoute><Trade /></ProtectedRoute>} />
           <Route path="/news" element={<News />} />
           <Route path="/learn" element={<Learn />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
