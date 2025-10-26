@@ -3,7 +3,6 @@ import PortfolioOverview from "@/components/PortfolioOverview";
 import MarketTrending from "@/components/MarketTrending";
 import RiskProfile from "@/components/RiskProfile";
 import AutomatedFeatures from "@/components/AutomatedFeatures";
-import NovaChat from "@/components/NovaChat";
 
 const Index = () => {
   return (
@@ -16,9 +15,8 @@ const Index = () => {
         <AutomatedFeatures />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2">
             <MarketTrending />
-            <NovaChat />
           </div>
           
           <div>
