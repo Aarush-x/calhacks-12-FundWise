@@ -45,9 +45,9 @@ const RiskProfile = () => {
         ))}
       </div>
       
-      <Button className="w-full mt-4 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity">
-        Update Strategy
-      </Button>
+      <p className="text-sm text-muted-foreground mt-4">
+        Configure your automated trading settings in the Trade section to activate your risk profile.
+      </p>
     </Card>
   );
 };
