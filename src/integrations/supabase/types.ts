@@ -14,7 +14,87 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      automated_trades: {
+        Row: {
+          alpaca_order_id: string | null
+          created_at: string
+          current_price: number | null
+          entry_price: number | null
+          id: string
+          order_type: string
+          profit_loss_percentage: number | null
+          quantity: number
+          status: Database["public"]["Enums"]["order_status"]
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alpaca_order_id?: string | null
+          created_at?: string
+          current_price?: number | null
+          entry_price?: number | null
+          id?: string
+          order_type: string
+          profit_loss_percentage?: number | null
+          quantity: number
+          status?: Database["public"]["Enums"]["order_status"]
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alpaca_order_id?: string | null
+          created_at?: string
+          current_price?: number | null
+          entry_price?: number | null
+          id?: string
+          order_type?: string
+          profit_loss_percentage?: number | null
+          quantity?: number
+          status?: Database["public"]["Enums"]["order_status"]
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_trading_settings: {
+        Row: {
+          automated_trading_enabled: boolean
+          created_at: string
+          id: string
+          profit_target_percentage: number
+          risk_profile: Database["public"]["Enums"]["risk_profile_type"]
+          stop_loss_enabled: boolean
+          stop_loss_percentage: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          automated_trading_enabled?: boolean
+          created_at?: string
+          id?: string
+          profit_target_percentage?: number
+          risk_profile?: Database["public"]["Enums"]["risk_profile_type"]
+          stop_loss_enabled?: boolean
+          stop_loss_percentage?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          automated_trading_enabled?: boolean
+          created_at?: string
+          id?: string
+          profit_target_percentage?: number
+          risk_profile?: Database["public"]["Enums"]["risk_profile_type"]
+          stop_loss_enabled?: boolean
+          stop_loss_percentage?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +103,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      order_status: "pending" | "filled" | "cancelled" | "failed"
+      risk_profile_type: "conservative" | "moderate" | "aggressive"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +231,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      order_status: ["pending", "filled", "cancelled", "failed"],
+      risk_profile_type: ["conservative", "moderate", "aggressive"],
+    },
   },
 } as const
