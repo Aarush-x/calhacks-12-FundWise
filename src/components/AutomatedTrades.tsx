@@ -26,7 +26,8 @@ const AutomatedTrades = () => {
 
   useEffect(() => {
     loadTrades();
-    const interval = setInterval(refreshPositions, 30000); // Refresh every 30 seconds
+    refreshPositions(); // Initial load
+    const interval = setInterval(refreshPositions, 15000); // Check every 15 seconds for automated selling
     return () => clearInterval(interval);
   }, []);
 
