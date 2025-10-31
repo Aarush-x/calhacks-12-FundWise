@@ -65,10 +65,24 @@ const KTradingAI = () => {
     setIsLoading(true);
 
     try {
+      // Fetch fresh account and positions data before sending message
+      const [accountResponse, positionsResponse] = await Promise.all([
+        supabase.functions.invoke('alpaca-trading', {
+          body: { action: 'get_account' }
+        }),
+        supabase.functions.invoke('alpaca-trading', {
+          body: { action: 'get_positions' }
+        })
+      ]);
+
+      const freshAccountData = accountResponse.data?.account;
+      const positionsData = positionsResponse.data?.positions || [];
+
       const { data, error } = await supabase.functions.invoke('k-trading-ai', {
         body: { 
           message: userMessage.content,
-          accountData: accountData 
+          accountData: freshAccountData,
+          positions: positionsData
         }
       });
 

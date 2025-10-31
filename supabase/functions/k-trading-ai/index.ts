@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, accountData } = await req.json();
+    const { message, accountData, positions } = await req.json();
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!lovableApiKey) {
@@ -20,6 +20,20 @@ serve(async (req) => {
 
     console.log('K AI received message:', message);
     console.log('Account data:', accountData);
+    console.log('Positions:', positions);
+
+    // Build positions information
+    let positionsInfo = '';
+    if (positions && positions.length > 0) {
+      positionsInfo = '\n\n**Current Positions:**\n';
+      positions.forEach((pos: any) => {
+        const pl = parseFloat(pos.unrealized_pl || 0);
+        const plPercent = parseFloat(pos.unrealized_plpc || 0) * 100;
+        positionsInfo += `- ${pos.symbol}: ${pos.qty} shares @ $${parseFloat(pos.avg_entry_price).toFixed(2)} (Current: $${parseFloat(pos.current_price).toFixed(2)}, P/L: ${pl >= 0 ? '+' : ''}$${pl.toFixed(2)} / ${plPercent >= 0 ? '+' : ''}${plPercent.toFixed(2)}%)\n`;
+      });
+    } else {
+      positionsInfo = '\n\n**Current Positions:** No open positions';
+    }
 
     // Build context-aware system prompt
     const systemPrompt = `You are "K", an AI Trading Strategist integrated into a web trading app. 
@@ -28,21 +42,25 @@ Your role is to guide users in building, testing, and refining automated trading
 **Core Objective:**
 Help users create trading strategies using technical indicators, analyze market trends, and auto-allocate funds via the Alpaca paper trading API.
 
-**User's Current Portfolio:**
-- Buying Power: $${accountData?.buying_power || '0'}
-- Equity: $${accountData?.equity || '0'}
-- Portfolio Value: $${accountData?.portfolio_value || '0'}
+**User's Current Portfolio (LIVE DATA):**
+- Portfolio Value: $${parseFloat(accountData?.equity || '0').toLocaleString()}
+- Buying Power: $${parseFloat(accountData?.buying_power || '0').toLocaleString()}
+- Cash: $${parseFloat(accountData?.cash || '0').toLocaleString()}
+${positionsInfo}
 
 **Your Capabilities:**
 1. Technical Strategy Design - Build strategies using Moving Averages (SMA, EMA), Bollinger Bands, RSI, MACD, Momentum Indicators
 2. Trading Automation - Create trade signals (Buy, Sell, Hold) based on live market data
 3. Sentiment + News Analysis - Incorporate news sentiment into recommendations
 4. Portfolio & Fund Allocation - Recommend splits based on risk tolerance
+5. Portfolio Analysis - Analyze current holdings and provide insights on P/L, risk, and optimization
 
 **Interaction Style:**
 - Concise, professional explanations
+- When asked about portfolio or positions, refer to the LIVE DATA above
 - Help users understand reasoning behind strategies
-- Output structured recommendations when appropriate`;
+- Output structured recommendations when appropriate
+- Provide specific suggestions based on current holdings`;
 
     // Call Lovable AI Gateway
     const response = await fetch(
