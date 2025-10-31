@@ -30,7 +30,8 @@ The **Gemini Flash 2.5 Trading Assistant** analyzes:
 - Market momentum  
 - Technical indicators  
 - Historical patterns  
-- Sentiment trends  
+- Sentiment trends
+- Your portfolio positions and gives you personalised suggestions  
 
 You can ask FundWise AI things like:
 >  *“Create a low-risk swing trading strategy for AAPL using Bollinger Bands and RSI.”*  
@@ -39,13 +40,13 @@ You can ask FundWise AI things like:
 ## Setup Instructions
 
 ## 1 Clone the repository
-```bash
 git clone https://github.com/<your-username>/FundWise-AI.git
 cd FundWise-AI
-2️ Install dependencies
+
+## 2 Install dependencies
 npm install
 
-3️ Add your environment variables
+## 3 Add your environment variables
 
 Create a .env file in the project root:
 
@@ -53,11 +54,11 @@ ALPHAVANTAGE_API_KEY=your_alphavantage_key_here
 YAHOO_API_KEY=your_yahoo_api_key_here
 GEMINI_API_KEY=your_gemini_flash_key_here
 
-4️ Run the app
+## 4 Run the app
 npm run dev
 
 
-### What technologies are used for this project?
+## What technologies are used for this project?
 
 This project is built with:
 
