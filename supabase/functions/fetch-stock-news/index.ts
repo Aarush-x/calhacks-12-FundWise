@@ -36,9 +36,16 @@ async function fetchStockNews(symbol: string, companyName: string): Promise<News
 
     const data = await response.json();
     
+    // Check for rate limiting
     if (data.Note) {
       console.error('Alpha Vantage API limit reached:', data.Note);
-      return [];
+      throw new Error('API_RATE_LIMIT: Alpha Vantage rate limit reached. Please wait a moment and try again.');
+    }
+
+    // Check for other API errors
+    if (data['Error Message']) {
+      console.error('Alpha Vantage API error:', data['Error Message']);
+      throw new Error(`API_ERROR: ${data['Error Message']}`);
     }
 
     if (!data.feed || data.feed.length === 0) {

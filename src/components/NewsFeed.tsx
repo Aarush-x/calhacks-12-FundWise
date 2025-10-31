@@ -70,7 +70,7 @@ const NewsFeed = () => {
 };
 
 const StockNewsTab = ({ symbol, name }: { symbol: string; name: string }) => {
-  const { data: newsData, isLoading } = useQuery({
+  const { data: newsData, isLoading, error } = useQuery({
     queryKey: ["news", symbol],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("fetch-stock-news", {
@@ -78,8 +78,18 @@ const StockNewsTab = ({ symbol, name }: { symbol: string; name: string }) => {
       });
       
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
       return data.news as NewsArticle[];
     },
+    retry: (failureCount, error) => {
+      // Don't retry on rate limit errors
+      if (error instanceof Error && error.message.includes('API_RATE_LIMIT')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   const formatDate = (dateString: string) => {
@@ -103,6 +113,26 @@ const StockNewsTab = ({ symbol, name }: { symbol: string; name: string }) => {
             <Skeleton className="h-16 w-full" />
           </Card>
         ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const isRateLimit = errorMessage.includes('API_RATE_LIMIT');
+    
+    return (
+      <div className="p-6 text-center">
+        <p className="text-sm text-muted-foreground mb-2">
+          {isRateLimit 
+            ? '⏱️ Alpha Vantage API rate limit reached'
+            : '⚠️ Unable to fetch news'}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {isRateLimit 
+            ? 'Please wait a few minutes and try again. Free tier has 5 requests/minute limit.'
+            : errorMessage}
+        </p>
       </div>
     );
   }
