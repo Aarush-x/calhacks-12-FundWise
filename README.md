@@ -1,7 +1,6 @@
 #  FundWise AI — Smart Stock Trading Assistant
 
 FundWise AI is a modern web platform that empowers users to automate and optimize their **stock trading strategies** using **AI and technical analysis**.  
-Built with ❤️ for calhacks — minimal, fast, and insightful.
 
 ---
 
