@@ -30,11 +30,12 @@ interface ChartDataPoint extends CandlestickData {
 }
 
 async function fetchIntradayData(symbol: string, apiKey: string): Promise<ChartDataPoint[]> {
-  // Finnhub provides candle data - we'll fetch 5-minute resolution for the past 7 days
+  // Finnhub free tier only supports daily resolution (D), not intraday (5, 15, 30, 60)
+  // We'll fetch daily data for the past 100 days
   const to = Math.floor(Date.now() / 1000);
-  const from = to - (7 * 24 * 60 * 60); // 7 days ago
+  const from = to - (100 * 24 * 60 * 60); // 100 days ago
   
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=5&from=${from}&to=${to}&token=${apiKey}`;
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
   
   console.log(`Fetching from Finnhub: ${url.replace(apiKey, 'HIDDEN')}`);
   
@@ -50,7 +51,7 @@ async function fetchIntradayData(symbol: string, apiKey: string): Promise<ChartD
 
   if (!data.s || data.s !== 'ok') {
     console.error('Finnhub API error:', JSON.stringify(data));
-    throw new Error(`API_ERROR: ${data.s || 'Invalid response from Finnhub'}`);
+    throw new Error(`API_ERROR: ${data.error || data.s || 'Invalid response from Finnhub'}`);
   }
 
   if (!data.t || !data.o || !data.h || !data.l || !data.c || !data.v) {
@@ -72,9 +73,8 @@ async function fetchIntradayData(symbol: string, apiKey: string): Promise<ChartD
     });
   }
 
-  // Take last 100 data points
-  const slicedData = chartData.slice(-100);
-  return slicedData.map(d => ({ ...d, indicators: {} }));
+  // Return all data points (up to 100 days)
+  return chartData.map(d => ({ ...d, indicators: {} }));
 }
 
 // Technical indicators will be calculated locally since Finnhub doesn't provide them in the same way
