@@ -30,63 +30,44 @@ interface ChartDataPoint extends CandlestickData {
 }
 
 async function fetchIntradayData(symbol: string, apiKey: string): Promise<ChartDataPoint[]> {
-  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&outputsize=full&apikey=${apiKey}`;
+  // Finnhub provides candle data - we'll fetch 1-day resolution for the past week
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - (7 * 24 * 60 * 60); // 7 days ago
+  
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=5&from=${from}&to=${to}&token=${apiKey}`;
   
   const response = await fetch(url);
   const data = await response.json();
 
-  if (data.Note) {
-    throw new Error('API_RATE_LIMIT: Alpha Vantage rate limit reached.');
-  }
-
-  if (data['Error Message']) {
-    throw new Error(`API_ERROR: ${data['Error Message']}`);
-  }
-
-  const timeSeries = data['Time Series (5min)'];
-  if (!timeSeries) {
+  if (data.s === 'no_data') {
+    console.log('No data available for symbol:', symbol);
     return [];
   }
 
-  const chartData: CandlestickData[] = [];
-  const sortedDates = Object.keys(timeSeries).sort().slice(-100); // Last 100 data points
+  if (data.s !== 'ok') {
+    throw new Error(`API_ERROR: ${data.s}`);
+  }
 
-  for (const date of sortedDates) {
-    const candle = timeSeries[date];
+  const chartData: CandlestickData[] = [];
+  
+  // Finnhub returns arrays for t (timestamp), o (open), h (high), l (low), c (close), v (volume)
+  for (let i = 0; i < data.t.length; i++) {
     chartData.push({
-      date,
-      open: parseFloat(candle['1. open']),
-      high: parseFloat(candle['2. high']),
-      low: parseFloat(candle['3. low']),
-      close: parseFloat(candle['4. close']),
-      volume: parseInt(candle['5. volume']),
+      date: new Date(data.t[i] * 1000).toISOString(),
+      open: data.o[i],
+      high: data.h[i],
+      low: data.l[i],
+      close: data.c[i],
+      volume: data.v[i],
     });
   }
 
-  return chartData.map(d => ({ ...d, indicators: {} }));
+  // Take last 100 data points
+  const slicedData = chartData.slice(-100);
+  return slicedData.map(d => ({ ...d, indicators: {} }));
 }
 
-async function fetchTechnicalIndicator(
-  symbol: string,
-  apiKey: string,
-  function_name: string,
-  params: Record<string, string>
-): Promise<Record<string, any>> {
-  const paramString = Object.entries(params)
-    .map(([key, value]) => `${key}=${value}`)
-    .join('&');
-  
-  const url = `https://www.alphavantage.co/query?function=${function_name}&symbol=${symbol}&${paramString}&apikey=${apiKey}`;
-  
-  const response = await fetch(url);
-  const data = await response.json();
-
-  if (data.Note || data['Error Message']) {
-    return {};
-  }
-
-  return data;
-}
+// Technical indicators will be calculated locally since Finnhub doesn't provide them in the same way
 
 function calculateTechnicalIndicators(chartData: CandlestickData[]): ChartDataPoint[] {
   const result: ChartDataPoint[] = chartData.map(d => ({ ...d, indicators: {} }));
@@ -181,10 +162,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
+    const apiKey = Deno.env.get('FINNHUB_API_KEY');
     
     if (!apiKey) {
-      console.error('ALPHA_VANTAGE_API_KEY not found');
+      console.error('FINNHUB_API_KEY not found');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
