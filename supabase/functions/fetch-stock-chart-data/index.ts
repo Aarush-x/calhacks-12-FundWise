@@ -30,50 +30,46 @@ interface ChartDataPoint extends CandlestickData {
 }
 
 async function fetchIntradayData(symbol: string, apiKey: string): Promise<ChartDataPoint[]> {
-  // Finnhub free tier only supports daily resolution (D), not intraday (5, 15, 30, 60)
-  // We'll fetch daily data for the past 100 days
-  const to = Math.floor(Date.now() / 1000);
-  const from = to - (100 * 24 * 60 * 60); // 100 days ago
+  // Alpha Vantage provides free intraday data (5min intervals)
+  const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${symbol}&interval=5min&outputsize=full&apikey=${apiKey}`;
   
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=D&from=${from}&to=${to}&token=${apiKey}`;
-  
-  console.log(`Fetching from Finnhub: ${url.replace(apiKey, 'HIDDEN')}`);
+  console.log(`Fetching from Alpha Vantage for symbol: ${symbol}`);
   
   const response = await fetch(url);
   const data = await response.json();
 
-  console.log(`Finnhub response status: ${data.s || 'undefined'}`);
+  if (data.Note) {
+    console.error('Alpha Vantage rate limit reached');
+    throw new Error('API_RATE_LIMIT: Alpha Vantage rate limit reached. Please try again later.');
+  }
 
-  if (data.s === 'no_data') {
-    console.log('No data available for symbol:', symbol);
+  if (data['Error Message']) {
+    console.error('Alpha Vantage error:', data['Error Message']);
+    throw new Error(`API_ERROR: ${data['Error Message']}`);
+  }
+
+  const timeSeries = data['Time Series (5min)'];
+  if (!timeSeries) {
+    console.log('No time series data available for:', symbol);
     return [];
   }
 
-  if (!data.s || data.s !== 'ok') {
-    console.error('Finnhub API error:', JSON.stringify(data));
-    throw new Error(`API_ERROR: ${data.error || data.s || 'Invalid response from Finnhub'}`);
-  }
-
-  if (!data.t || !data.o || !data.h || !data.l || !data.c || !data.v) {
-    console.error('Finnhub response missing required fields:', data);
-    throw new Error('API_ERROR: Invalid data structure from Finnhub');
-  }
-
   const chartData: CandlestickData[] = [];
-  
-  // Finnhub returns arrays for t (timestamp), o (open), h (high), l (low), c (close), v (volume)
-  for (let i = 0; i < data.t.length; i++) {
+  const sortedDates = Object.keys(timeSeries).sort().slice(-100); // Last 100 data points
+
+  for (const date of sortedDates) {
+    const candle = timeSeries[date];
     chartData.push({
-      date: new Date(data.t[i] * 1000).toISOString(),
-      open: data.o[i],
-      high: data.h[i],
-      low: data.l[i],
-      close: data.c[i],
-      volume: data.v[i],
+      date,
+      open: parseFloat(candle['1. open']),
+      high: parseFloat(candle['2. high']),
+      low: parseFloat(candle['3. low']),
+      close: parseFloat(candle['4. close']),
+      volume: parseInt(candle['5. volume']),
     });
   }
 
-  // Return all data points (up to 100 days)
+  console.log(`Successfully fetched ${chartData.length} data points for ${symbol}`);
   return chartData.map(d => ({ ...d, indicators: {} }));
 }
 
@@ -172,10 +168,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const apiKey = Deno.env.get('FINNHUB_API_KEY');
+    const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
     
     if (!apiKey) {
-      console.error('FINNHUB_API_KEY not found');
+      console.error('ALPHA_VANTAGE_API_KEY not found');
       return new Response(
         JSON.stringify({ error: 'API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
