@@ -147,7 +147,10 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
                         borderRadius: '8px',
                       }}
                       labelFormatter={(value) => new Date(value).toLocaleString()}
-                      formatter={(value: number) => [`$${value.toFixed(2)}`]}
+                      formatter={(value: any) => {
+                        const num = typeof value === 'number' ? value : parseFloat(value);
+                        return isNaN(num) ? ['N/A'] : [`$${num.toFixed(2)}`];
+                      }}
                     />
                     
                     {chartType === 'candlestick' ? (
@@ -304,7 +307,10 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                         }}
-                        formatter={(value: number) => [value?.toFixed(2), 'RSI']}
+                        formatter={(value: any) => {
+                          const num = typeof value === 'number' ? value : parseFloat(value);
+                          return isNaN(num) ? ['N/A', 'RSI'] : [num.toFixed(2), 'RSI'];
+                        }}
                       />
                       <Line 
                         type="monotone" 
@@ -359,7 +365,10 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                         }}
-                        formatter={(value: number) => [value?.toFixed(4)]}
+                        formatter={(value: any) => {
+                          const num = typeof value === 'number' ? value : parseFloat(value);
+                          return isNaN(num) ? ['N/A'] : [num.toFixed(4)];
+                        }}
                       />
                       <Line 
                         type="monotone" 
@@ -416,7 +425,10 @@ const StockDetailsDialog = ({ open, onOpenChange, symbol, name }: StockDetailsDi
                           border: '1px solid hsl(var(--border))',
                           borderRadius: '8px',
                         }}
-                        formatter={(value: number) => [value.toLocaleString(), 'Volume']}
+                        formatter={(value: any) => {
+                          const num = typeof value === 'number' ? value : parseFloat(value);
+                          return isNaN(num) ? ['N/A', 'Volume'] : [num.toLocaleString(), 'Volume'];
+                        }}
                       />
                       <Bar
                         dataKey="volume"
