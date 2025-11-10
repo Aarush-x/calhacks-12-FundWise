@@ -1,9 +1,10 @@
 import { Card } from "@/components/ui/card";
-import { Newspaper, ExternalLink, Clock } from "lucide-react";
+import { Newspaper, ExternalLink, Clock, Globe } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 interface NewsArticle {
   title: string;
@@ -13,68 +14,53 @@ interface NewsArticle {
   description: string;
 }
 
-const STOCKS = [
-  { symbol: "AAPL", name: "Apple Inc." },
-  { symbol: "TSLA", name: "Tesla, Inc." },
-  { symbol: "NVDA", name: "NVIDIA" },
-  { symbol: "MSFT", name: "Microsoft" },
+const COUNTRIES = [
+  { code: "US", name: "United States", flag: "🇺🇸" },
+  { code: "India", name: "India", flag: "🇮🇳" },
 ];
 
 const NewsFeed = () => {
-  const fetchNewsForStock = async (symbol: string, name: string) => {
-    const { data, error } = await supabase.functions.invoke("fetch-stock-news", {
-      body: { symbol, companyName: name },
-    });
-    
-    if (error) throw error;
-    return data.news as NewsArticle[];
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
-    if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    }
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
-  };
+  const [selectedCountry, setSelectedCountry] = useState<string>("US");
 
   return (
     <Card className="p-6 border-border/50">
-      <div className="flex items-center gap-2 mb-4">
-        <Newspaper className="w-5 h-5 text-primary" />
-        <h3 className="text-lg font-semibold">Market News</h3>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <Newspaper className="w-5 h-5 text-primary" />
+          <h3 className="text-lg font-semibold">Market News & Headlines</h3>
+        </div>
+        
+        <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+          <SelectTrigger className="w-[180px]">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              <SelectValue />
+            </div>
+          </SelectTrigger>
+          <SelectContent>
+            {COUNTRIES.map((country) => (
+              <SelectItem key={country.code} value={country.code}>
+                <span className="flex items-center gap-2">
+                  <span>{country.flag}</span>
+                  <span>{country.name}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       
-      <Tabs defaultValue="AAPL" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 mb-4">
-          {STOCKS.map((stock) => (
-            <TabsTrigger key={stock.symbol} value={stock.symbol}>
-              {stock.symbol}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {STOCKS.map((stock) => (
-          <TabsContent key={stock.symbol} value={stock.symbol}>
-            <StockNewsTab symbol={stock.symbol} name={stock.name} />
-          </TabsContent>
-        ))}
-      </Tabs>
+      <MarketNewsContent country={selectedCountry} />
     </Card>
   );
 };
 
-const StockNewsTab = ({ symbol, name }: { symbol: string; name: string }) => {
+const MarketNewsContent = ({ country }: { country: string }) => {
   const { data: newsData, isLoading, error } = useQuery({
-    queryKey: ["news", symbol],
+    queryKey: ["market-news", country],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke("fetch-stock-news", {
-        body: { symbol, companyName: name },
+        body: { country },
       });
       
       if (error) throw error;
@@ -173,7 +159,7 @@ const StockNewsTab = ({ symbol, name }: { symbol: string; name: string }) => {
         ))
       ) : (
         <p className="text-sm text-muted-foreground text-center py-4">
-          No news available for {symbol}
+          No news available for {country}
         </p>
       )}
     </div>

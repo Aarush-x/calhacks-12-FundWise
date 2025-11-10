@@ -13,7 +13,7 @@ interface NewsArticle {
   relevanceScore?: number;
 }
 
-async function fetchStockNews(symbol: string, companyName: string): Promise<NewsArticle[]> {
+async function fetchMarketNews(country?: string): Promise<NewsArticle[]> {
   const apiKey = Deno.env.get('ALPHA_VANTAGE_API_KEY');
   
   if (!apiKey) {
@@ -22,10 +22,12 @@ async function fetchStockNews(symbol: string, companyName: string): Promise<News
   }
 
   try {
-    // Fetch news from Alpha Vantage with ticker filter
-    const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&tickers=${symbol}&apikey=${apiKey}&limit=50`;
+    // Fetch general market news from Alpha Vantage
+    // Alpha Vantage doesn't have country-specific filtering, so we'll use topics
+    const topics = country === 'India' ? 'finance,economy' : 'finance';
+    const url = `https://www.alphavantage.co/query?function=NEWS_SENTIMENT&topics=${topics}&apikey=${apiKey}&limit=50`;
     
-    console.log(`Fetching news for ${symbol} from Alpha Vantage`);
+    console.log(`Fetching general market news for ${country || 'Global'}`);
     
     const response = await fetch(url);
     
@@ -49,50 +51,40 @@ async function fetchStockNews(symbol: string, companyName: string): Promise<News
     }
 
     if (!data.feed || data.feed.length === 0) {
-      console.log('No news found for symbol:', symbol);
+      console.log('No news found');
       return [];
     }
 
-    // Filter and process news articles
+    // Process news articles with country filtering
     const newsArticles: NewsArticle[] = [];
-    const keywords = [symbol.toLowerCase(), companyName.toLowerCase()];
-    
-    // Add common variations
-    if (companyName.toLowerCase().includes('inc')) {
-      keywords.push(companyName.toLowerCase().replace('inc.', '').trim());
-    }
+    const countryKeywords: Record<string, string[]> = {
+      'US': ['us', 'united states', 'america', 'wall street', 'nasdaq', 'dow jones', 's&p', 'fed', 'federal reserve'],
+      'India': ['india', 'indian', 'nifty', 'sensex', 'bse', 'nse', 'mumbai', 'rbi', 'reserve bank of india']
+    };
 
     for (const article of data.feed) {
-      // Check relevance using keywords
       const titleLower = article.title.toLowerCase();
       const summaryLower = (article.summary || '').toLowerCase();
       const combinedText = titleLower + ' ' + summaryLower;
       
-      // Calculate relevance score
-      let relevanceScore = 0;
-      keywords.forEach(keyword => {
-        if (combinedText.includes(keyword)) {
-          relevanceScore += 1;
-        }
-      });
+      // If country is specified, filter by country keywords
+      let isRelevant = true;
+      if (country && countryKeywords[country]) {
+        isRelevant = countryKeywords[country].some(keyword => 
+          combinedText.includes(keyword)
+        );
+      }
 
-      // Only include articles with relevance
-      if (relevanceScore > 0) {
-        // Get sentiment for the specific ticker
+      if (isRelevant) {
+        // Get overall sentiment
         let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
         
-        if (article.ticker_sentiment) {
-          const tickerSentiment = article.ticker_sentiment.find(
-            (ts: any) => ts.ticker === symbol
-          );
-          
-          if (tickerSentiment && tickerSentiment.ticker_sentiment_label) {
-            const label = tickerSentiment.ticker_sentiment_label.toLowerCase();
-            if (label.includes('bullish') || label.includes('positive')) {
-              sentiment = 'positive';
-            } else if (label.includes('bearish') || label.includes('negative')) {
-              sentiment = 'negative';
-            }
+        if (article.overall_sentiment_label) {
+          const label = article.overall_sentiment_label.toLowerCase();
+          if (label.includes('bullish') || label.includes('positive')) {
+            sentiment = 'positive';
+          } else if (label.includes('bearish') || label.includes('negative')) {
+            sentiment = 'negative';
           }
         }
 
@@ -112,23 +104,19 @@ async function fetchStockNews(symbol: string, companyName: string): Promise<News
             : new Date().toISOString(),
           description: article.summary || '',
           sentiment,
-          relevanceScore,
         });
       }
     }
 
-    // Sort by relevance score and date
-    newsArticles.sort((a, b) => {
-      if (b.relevanceScore !== a.relevanceScore) {
-        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
-      }
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    });
+    // Sort by date
+    newsArticles.sort((a, b) => 
+      new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime()
+    );
 
-    console.log(`Found ${newsArticles.length} relevant articles for ${symbol}`);
-    return newsArticles.slice(0, 20); // Return top 20 most relevant
+    console.log(`Found ${newsArticles.length} articles for ${country || 'Global'}`);
+    return newsArticles.slice(0, 30); // Return top 30 most recent
   } catch (error) {
-    console.error(`Error fetching news for ${symbol}:`, error);
+    console.error(`Error fetching market news:`, error);
     return [];
   }
 }
@@ -139,18 +127,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { symbol, companyName } = await req.json();
-    
-    if (!symbol) {
-      return new Response(
-        JSON.stringify({ error: 'Symbol is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { country } = await req.json();
 
-    console.log('Fetching news for:', symbol, companyName);
+    console.log('Fetching market news for:', country || 'Global');
 
-    const news = await fetchStockNews(symbol, companyName || symbol);
+    const news = await fetchMarketNews(country);
 
     console.log('Successfully fetched:', news.length, 'articles');
 
